@@ -114,6 +114,78 @@ async def analyze_contract(
         )
 
         # =================================================
+        # FALLBACK SYMBOLIC GENERATION
+        # =================================================
+        if not symbolic_vulns:
+
+            for vuln in vulnerabilities:
+
+                vuln_type = vuln.get(
+                    "type",
+                    ""
+                )
+
+                # ---------------------------------------------
+                # REENTRANCY DETECTION
+                # ---------------------------------------------
+                if (
+                    "Reentrancy"
+                    in vuln_type
+                ):
+
+                    path = vuln.get(
+                        "path",
+                        []
+                    )
+
+                    # -----------------------------------------
+                    # PATH-BASED REENTRANCY
+                    # -----------------------------------------
+                    if path:
+
+                        symbolic_vulns.append({
+
+                            "type":
+                            "REENTRANCY",
+
+                            "severity":
+                            "CRITICAL",
+
+                            "attack_flow":
+                            " → ".join(path),
+
+                            "exploit_chain":
+                            path
+                        })
+
+                    # -----------------------------------------
+                    # GENERIC FALLBACK
+                    # -----------------------------------------
+                    else:
+
+                        symbolic_vulns.append({
+
+                            "type":
+                            "REENTRANCY",
+
+                            "severity":
+                            "CRITICAL",
+
+                            "attack_flow":
+                            vuln_type,
+
+                            "exploit_chain":
+                            [
+
+                                "External Call",
+
+                                "State Mutation",
+
+                                "Recursive Reentry"
+                            ]
+                        })
+
+        # =================================================
         # SYMBOLIC TRACE
         # =================================================
         symbolic_trace = []
@@ -135,9 +207,9 @@ async def analyze_contract(
                 []
             )
 
-            # -------------------------------------------------
+            # ---------------------------------------------
             # REENTRANCY
-            # -------------------------------------------------
+            # ---------------------------------------------
             if "REENTRANCY" in vuln_type:
 
                 for target in exploit_chain:
@@ -150,9 +222,9 @@ async def analyze_contract(
                     f"[REENTRY] {attack_flow}"
                 )
 
-            # -------------------------------------------------
-            # GENERIC ATTACK FLOW
-            # -------------------------------------------------
+            # ---------------------------------------------
+            # GENERIC FLOW
+            # ---------------------------------------------
             elif attack_flow:
 
                 symbolic_trace.append(
@@ -205,11 +277,8 @@ async def analyze_contract(
         # =================================================
         # GRAPH URL
         # =================================================
-        base_url = os.getenv(
-
-            "RENDER_EXTERNAL_URL",
-
-            "http://127.0.0.1:8000"
+        base_url = (
+            "https://nft-security-analyzer.onrender.com"
         )
 
         graph_url = (

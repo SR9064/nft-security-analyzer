@@ -168,6 +168,7 @@ def run(contract_path, verbose=False):
     )
 
     symbolic_vulns = run_evm(ir)
+    print("SYM VULNS:", symbolic_vulns)
 
     # -------------------------------------------------
     # MERGE SYMBOLIC VULNS
