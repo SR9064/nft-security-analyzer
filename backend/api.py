@@ -1,4 +1,5 @@
 from fastapi.staticfiles import StaticFiles
+import os
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,6 +12,8 @@ app = FastAPI()
 # =====================================================
 # STATIC FILES
 # =====================================================
+os.makedirs("output", exist_ok=True)
+
 app.mount(
     "/output",
     StaticFiles(directory="output"),
