@@ -1,26 +1,19 @@
 from fastapi.staticfiles import StaticFiles
+import os
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
-from nftscanner.main import run
-
 import shutil
+import subprocess
 import os
 
-# =====================================================
-# FASTAPI INIT
-# =====================================================
 app = FastAPI()
-
-# =====================================================
-# REQUIRED DIRECTORIES
-# =====================================================
-os.makedirs("output", exist_ok=True)
-os.makedirs("contracts", exist_ok=True)
 
 # =====================================================
 # STATIC FILES
 # =====================================================
+os.makedirs("output", exist_ok=True)
+
 app.mount(
     "/output",
     StaticFiles(directory="output"),
@@ -45,9 +38,9 @@ app.add_middleware(
 def home():
 
     return {
-        "message":
-        "NFT Security Analyzer API Running"
+        "message": "NFT Security Analyzer API Running"
     }
+
 
 # =====================================================
 # ANALYZE CONTRACT
@@ -57,285 +50,303 @@ async def analyze_contract(
     file: UploadFile = File(...)
 ):
 
+    # -------------------------------------------------
+    # SAVE FILE
+    # -------------------------------------------------
+    temp_path = f"contracts/{file.filename}"
+
+    with open(temp_path, "wb") as buffer:
+
+        shutil.copyfileobj(
+            file.file,
+            buffer
+        )
+
+    # -------------------------------------------------
+    # RUN ANALYZER
+    # -------------------------------------------------
     try:
 
+        print("[API] Starting analyzer...")
+
+        result = subprocess.run(
+            [
+                "python3",
+                "-m",
+                "nftscanner.main",
+                temp_path
+            ],
+            capture_output=True,
+            text=True,
+            cwd=os.getcwd(),
+            timeout=20
+        )
+
+        print("[API] Analyzer finished")
+
+        output = (
+            result.stdout
+            + "\n"
+            + result.stderr
+        )
+
         # -------------------------------------------------
-        # SAVE CONTRACT
+        # SPLIT SYMBOLIC TRACE
         # -------------------------------------------------
-        temp_path = f"contracts/{file.filename}"
-
-        print(
-            f"[API] Saving contract → {temp_path}"
-        )
-
-        with open(temp_path, "wb") as buffer:
-
-            shutil.copyfileobj(
-                file.file,
-                buffer
-            )
-
-        # -------------------------------------------------
-        # RUN ANALYZER
-        # -------------------------------------------------
-        print(
-            "[API] Running analyzer..."
-        )
-
-        analysis_result = run(
-            temp_path,
-            verbose=True
-        )
-
-        print(
-            "[API] Analyzer complete"
-        )
-
-        # =================================================
-        # SAFE DEFAULTS
-        # =================================================
-        if not analysis_result:
-
-            analysis_result = {}
-
-        vulnerabilities = analysis_result.get(
-            "issues",
-            []
-        )
-
-        symbolic_vulns = analysis_result.get(
-            "symbolic_vulns",
-            []
-        )
-
-        risk = analysis_result.get(
-            "risk",
-            0
-        )
-
-        # =================================================
-        # FALLBACK SYMBOLIC GENERATION
-        # =================================================
-        if not symbolic_vulns:
-
-            for vuln in vulnerabilities:
-
-                vuln_type = vuln.get(
-                    "type",
-                    ""
-                )
-
-                # ---------------------------------------------
-                # REENTRANCY DETECTION
-                # ---------------------------------------------
-                if (
-                    "Reentrancy"
-                    in vuln_type
-                ):
-
-                    path = vuln.get(
-                        "path",
-                        []
-                    )
-
-                    # -----------------------------------------
-                    # PATH-BASED REENTRANCY
-                    # -----------------------------------------
-                    if path:
-
-                        symbolic_vulns.append({
-
-                            "type":
-                            "REENTRANCY",
-
-                            "severity":
-                            "CRITICAL",
-
-                            "attack_flow":
-                            " → ".join(path),
-
-                            "exploit_chain":
-                            path
-                        })
-
-                    # -----------------------------------------
-                    # GENERIC FALLBACK
-                    # -----------------------------------------
-                    else:
-
-                        symbolic_vulns.append({
-
-                            "type":
-                            "REENTRANCY",
-
-                            "severity":
-                            "CRITICAL",
-
-                            "attack_flow":
-                            vuln_type,
-
-                            "exploit_chain":
-                            [
-
-                                "External Call",
-
-                                "State Mutation",
-
-                                "Recursive Reentry"
-                            ]
-                        })
-
-        # =================================================
-        # SYMBOLIC TRACE
-        # =================================================
         symbolic_trace = []
 
-        for vuln in symbolic_vulns:
+        for line in output.split("\n"):
 
-            vuln_type = vuln.get(
-                "type",
-                ""
-            )
+            if (
+                "[TRACE]" in line
+                or "[CALL]" in line
+                or "[REENTRY]" in line
+                or "[OWNER CHANGE]" in line
+                or "[BALANCE CHANGE]" in line
+                or "[PATH BLOCKED]" in line
+            ):
 
-            attack_flow = vuln.get(
-                "attack_flow",
-                ""
-            )
+                symbolic_trace.append(line)
 
-            exploit_chain = vuln.get(
-                "exploit_chain",
-                []
-            )
-
-            # ---------------------------------------------
-            # REENTRANCY
-            # ---------------------------------------------
-            if "REENTRANCY" in vuln_type:
-
-                for target in exploit_chain:
-
-                    symbolic_trace.append(
-                        f"[CALL] External contract call → {target}"
-                    )
-
-                symbolic_trace.append(
-                    f"[REENTRY] {attack_flow}"
-                )
-
-            # ---------------------------------------------
-            # GENERIC FLOW
-            # ---------------------------------------------
-            elif attack_flow:
-
-                symbolic_trace.append(
-                    f"[TRACE] {attack_flow}"
-                )
-
-        # =================================================
-        # ATTACK PATHS
-        # =================================================
-        attack_paths = [
-
-            vuln.get("attack_flow")
-
-            for vuln in symbolic_vulns
-
-            if vuln.get("attack_flow")
-        ]
-
-        # =================================================
-        # RISK COUNTS
-        # =================================================
-        critical_count = 0
-        high_count = 0
-        medium_count = 0
-        low_count = 0
-
-        for vuln in vulnerabilities:
-
-            severity = vuln.get(
-                "severity",
-                ""
-            ).upper()
-
-            if severity == "CRITICAL":
-
-                critical_count += 1
-
-            elif severity == "HIGH":
-
-                high_count += 1
-
-            elif severity == "MEDIUM":
-
-                medium_count += 1
-
-            elif severity == "LOW":
-
-                low_count += 1
-
-        # =================================================
-        # GRAPH URL
-        # =================================================
-        base_url = (
-            "https://nft-security-analyzer.onrender.com"
-        )
-
-        graph_url = (
-            f"{base_url}/output/call_graph.png"
-        )
-
-        # =================================================
-        # RESPONSE
-        # =================================================
-        return {
-
-            "success": True,
-
-            "vulnerabilities":
-            vulnerabilities,
-
-            "symbolic_trace":
-            symbolic_trace,
-
-            "attack_paths":
-            attack_paths,
-
-            "graph_url":
-            graph_url,
-
-            "risk_summary": {
-
-                "score":
-                risk,
-
-                "critical":
-                critical_count,
-
-                "high":
-                high_count,
-
-                "medium":
-                medium_count,
-
-                "low":
-                low_count
-            }
-        }
-
-    # =====================================================
-    # ERROR HANDLER
-    # =====================================================
     except Exception as e:
 
-        print(
-            f"[API ERROR] {str(e)}"
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+    # =====================================================
+    # PARSE VULNERABILITIES
+    # =====================================================
+    vulnerabilities = []
+
+    detector_map = [
+
+        (
+            "Missing Ownership Access Control",
+            "Missing Ownership Access Control",
+            "HIGH"
+        ),
+
+        (
+            "Unsafe tx.origin Authentication",
+            "Unsafe tx.origin Authentication",
+            "HIGH"
+        ),
+
+        (
+            "Dangerous Selfdestruct Usage",
+            "Dangerous Selfdestruct Usage",
+            "CRITICAL"
+        ),
+
+        (
+            "Dangerous Delegatecall Usage",
+            "Dangerous Delegatecall Usage",
+            "HIGH"
+        ),
+
+        (
+            "Unchecked External Call",
+            "Unchecked External Call",
+            "HIGH"
+        ),
+
+        (
+            "Unlimited NFT Minting Risk",
+            "Unlimited NFT Minting Risk",
+            "HIGH"
+        ),
+
+        (
+            "Mutable NFT Metadata Risk",
+            "Mutable NFT Metadata Risk",
+            "MEDIUM"
+        ),
+
+        (
+            "Royalty Manipulation Risk",
+            "Royalty Manipulation Risk",
+            "MEDIUM"
+        ),
+
+        (
+            "Centralized Owner Privileges",
+            "Centralized Owner Privileges",
+            "MEDIUM"
+        ),
+
+        (
+            "Hidden Owner Mint Capability",
+            "Hidden Owner Mint Capability",
+            "HIGH"
+        ),
+
+        (
+            "Approval For All Abuse Risk",
+            "Approval For All Abuse Risk",
+            "HIGH"
+        ),
+
+        (
+            "Unsafe ERC721 Transfer Usage",
+            "Unsafe ERC721 Transfer Usage",
+            "HIGH"
+        ),
+
+        (
+            "Missing Zero Address Validation",
+            "Missing Zero Address Validation",
+            "MEDIUM"
+        ),
+
+        (
+            "UNAUTHORIZED_TRANSFER",
+            "Unauthorized Transfer",
+            "HIGH"
+        ),
+
+        (
+            "TAINTED_UNAUTHORIZED_TRANSFER",
+            "Tainted Unauthorized Transfer",
+            "HIGH"
+        ),
+
+        (
+            "OWNERSHIP_CORRUPTION",
+            "Ownership Corruption",
+            "HIGH"
         )
 
-        return {
+    ]
 
-            "success": False,
+    # -------------------------------------------------
+    # DETECTOR MATCHING
+    # -------------------------------------------------
+    for keyword, vuln_type, severity in detector_map:
 
-            "error":
-            str(e)
+        if keyword in output:
+
+            vulnerabilities.append({
+
+                "type":
+                vuln_type,
+
+                "severity":
+                severity
+            })
+
+    # -------------------------------------------------
+    # SYMBOLIC EXECUTION VULNS
+    # -------------------------------------------------
+    if "VULNS:" in output:
+
+        vulnerabilities.append({
+
+            "type":
+            "Symbolic Execution Attack",
+
+            "severity":
+            "CRITICAL"
+        })
+
+    # -------------------------------------------------
+    # REENTRANCY
+    # -------------------------------------------------
+    if (
+        "REENTRANCY" in output
+        or "[REENTRY]" in output
+    ):
+
+        vulnerabilities.append({
+
+            "type":
+            "Reentrancy Attack",
+
+            "severity":
+            "CRITICAL"
+        })
+
+    # =====================================================
+    # RISK METRICS
+    # =====================================================
+    critical_count = 0
+    high_count = 0
+    medium_count = 0
+    low_count = 0
+
+    for vuln in vulnerabilities:
+
+        severity = vuln.get(
+            "severity",
+            ""
+        ).upper()
+
+        if severity == "CRITICAL":
+
+            critical_count += 1
+
+        elif severity == "HIGH":
+
+            high_count += 1
+
+        elif severity == "MEDIUM":
+
+            medium_count += 1
+
+        elif severity == "LOW":
+
+            low_count += 1
+
+    risk_score = (
+        critical_count * 10
+        + high_count * 7
+        + medium_count * 4
+        + low_count * 1
+    )
+
+    # =====================================================
+    # RESPONSE
+    # =====================================================
+    return {
+
+        "success": True,
+
+        "vulnerabilities":
+        vulnerabilities,
+
+        "raw_output":
+        output,
+
+        "symbolic_trace":
+        symbolic_trace,
+
+        "attack_paths":
+        [
+            line.replace(
+                "[TRACE] ",
+                ""
+            )
+            for line in symbolic_trace
+            if "⚠ Reentrancy" in line
+        ],
+
+        "graph_url":"https://nft-security-analyzer.onrender.com/output/call_graph.png",
+        "risk_summary": {
+
+            "score":
+            risk_score,
+
+            "critical":
+            critical_count,
+
+            "high":
+            high_count,
+
+            "medium":
+            medium_count,
+
+            "low":
+            low_count
         }
+    }

@@ -82,541 +82,386 @@ const [activeSection, setActiveSection] =
   useState("top")
   // ANALYZE CONTRACT
   // =====================================================
-  const analyzeContract = async () => {
+const analyzeContract = async () => {
 
-    if (!file) {
+  if (!file) {
 
-      alert("Please select Solidity file")
+    alert("Please select Solidity file")
 
-      return
-    }
+    return
+  }
+
+  try {
+
+    setLoading(true)
 
     const formData = new FormData()
 
-    formData.append("file", file)
+    formData.append(
+      "file",
+      file
+    )
 
-    try {
+    const response = await fetch(
 
-      setLoading(true)
+      "https://nft-security-analyzer.onrender.com/analyze",
 
-      const response = await fetch(
-        "http://127.0.0.1:8000/analyze",
-        {
-          method: "POST",
-          body: formData
-        }
-      )
+      {
+        method: "POST",
 
-      const data = await response.json()
-
-      setVulnerabilities(
-        data.vulnerabilities || []
-      )
-
-      setRawOutput(
-        data.raw_output || ""
-      )
-
-      setSymbolicTrace(
-        data.symbolic_trace || []
-      )
-      setAttackPaths(
-  data.attack_paths || []
-)
-
-
-
-      setRiskSummary(
-        data.risk_summary || null
-      )
-      
-// =================================================
-// BUILD INTERACTIVE GRAPH
-// =================================================
-
-const generatedNodes: any[] = []
-
-const generatedEdges: any[] = []
-let entryY = 120
-let externalY = 120
-let reentryY = 120
-
-generatedNodes.push(
-
-  // =================================================
-  // ENTRY CLUSTER
-  // =================================================
-
-  {
-    id: "cluster-entry",
-
-    type: "group",
-
-    position: {
-      x: 0,
-      y: 0
-    },
-
-    style: {
-
-      width: 420,
-      zIndex: 0,
-
-height: 2200,
-      overflow: "visible",
-
-      background:
-        "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(2,6,23,0.92))",
-
-      border:
-        "2px solid rgba(34,197,94,0.18)",
-
-      borderRadius: "24px",
-
-      boxShadow:
-        "0 0 40px rgba(34,197,94,0.08)"
-    },
-
-data: {
-  label: "🟢 ENTRY FLOW\n\nExecution & Validation"
-}
-  },
-
-  // =================================================
-  // EXTERNAL CLUSTER
-  // =================================================
-
-  {
-    id: "cluster-external",
-
-    type: "group",
-
-    position: {
-      x: 620,
-      y: 0
-    },
-
-    style: {
-
-      width: 420,
-      zIndex: 0,
-
-height: 2200,
-
-      overflow: "visible",
-
-      background:
-        "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(2,6,23,0.92))",
-
-      border:
-        "2px solid rgba(59,130,246,0.18)",
-
-      borderRadius: "24px",
-
-      boxShadow:
-        "0 0 40px rgba(59,130,246,0.08)"
-    },
-
-    data: {
-      label: "🔵 EXTERNAL CALLS"
-    }
-  },
-
-  // =================================================
-  // REENTRANCY CLUSTER
-  // =================================================
-
-  {
-    id: "cluster-reentry",
-
-    type: "group",
-
-    position: {
-      x: 1240,
-      y: 0
-    },
-
-    style: {
-
-      width: 420,
-      zIndex: 0,
-
-height: 2200,
-
-      overflow: "visible",
-
-      background:
-        "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(2,6,23,0.92))",
-
-      border:
-        "2px solid rgba(239,68,68,0.18)",
-
-      borderRadius: "24px",
-
-      boxShadow:
-        "0 0 40px rgba(239,68,68,0.08)"
-    },
-
-    data: {
-      label: "🔴 REENTRANCY"
-    }
-  }
-)
-
-// =================================================
-// FLOW TRACKERS
-// =================================================
-
-let previousEntryNode: string | null = null
-
-let previousExternalNode: string | null = null
-
-let previousReentryNode: string | null = null
-
-let previousGlobalNode: string | null = null
-
-let previousGlobalCluster: string | null = null
-
-// =================================================
-// NODE SPACING
-// =================================================
-
-
-
-// =================================================
-// TRACE LOOP
-// =================================================
-;(
-  data.symbolic_trace || []
-).forEach(
-
-  (
-    trace: string,
-    index: number
-  ) => {
-
-    const nodeId =
-      `node-${index}`
-
-    let clusterId =
-      "cluster-entry"
-
-    // =================================================
-    // DETECT CLUSTER
-    // =================================================
-
-    if (
-
-      trace.includes("[CALL]")
-
-      ||
-
-      trace.includes("External")
-
-    ) {
-
-      clusterId =
-        "cluster-external"
-    }
-
-    else if (
-
-      trace.includes("[REENTRY]")
-
-      ||
-
-      trace.includes("Reentrancy")
-
-    ) {
-
-      clusterId =
-        "cluster-reentry"
-    }
-
-    // =================================================
-    // POSITIONING
-    // =================================================
-
-    let nodeY = entryY
-
-    if (
-      clusterId === "cluster-external"
-    ) {
-
-      nodeY = externalY
-
-      externalY += 150
-    }
-
-    else if (
-      clusterId === "cluster-reentry"
-    ) {
-
-      nodeY = reentryY
-
-      reentryY += 150
-    }
-
-    else {
-
-      nodeY = entryY
-
-      entryY += 150
-    }
-
-    // =================================================
-    // CREATE NODE
-    // =================================================
-
-    generatedNodes.push({
-
-      id: nodeId,
-
-      parentNode: clusterId,
-
-      extent: "parent",
-
-      sourcePosition: Position.Bottom,
-
-      targetPosition: Position.Top,
-
-      position: {
-
-        x: 30,
-
-        y: nodeY
-      },
-
-      data: {
-        label: trace
-      },
-
-      style: {
-
-        width: 300,
-        zIndex: 10,
-
-        minHeight: 90,
-
-        padding: "16px",
-
-        borderRadius: "18px",
-
-        color: "white",
-
-        fontWeight: "700",
-        lineHeight: "1.5",
-wordBreak: "break-word",
-textAlign: "center",
-justifyContent: "center",
-
-        fontSize: "13px",
-
-        display: "flex",
-
-        alignItems: "center",
-
-        boxShadow:
-
-          clusterId === "cluster-reentry"
-
-            ? "0 0 24px rgba(239,68,68,0.22)"
-
-            : clusterId === "cluster-external"
-
-            ? "0 0 24px rgba(59,130,246,0.22)"
-
-            : "0 0 24px rgba(34,197,94,0.18)",
-
-        border:
-
-          clusterId === "cluster-reentry"
-
-            ? "1px solid rgba(239,68,68,0.35)"
-
-            : clusterId === "cluster-external"
-
-            ? "1px solid rgba(59,130,246,0.35)"
-
-            : "1px solid rgba(34,197,94,0.35)",
-
-        background:
-
-          clusterId === "cluster-reentry"
-
-            ? "linear-gradient(145deg,#450a0a,#7f1d1d)"
-
-            : clusterId === "cluster-external"
-
-            ? "linear-gradient(145deg,#172554,#2563eb)"
-
-            : "linear-gradient(145deg,#052e16,#166534)"
+        body: formData
       }
-    })
+    )
 
-    // =================================================
-    // INTERNAL FLOW
-    // =================================================
+    if (!response.ok) {
 
-    let previousNode = null
-
-    let edgeColor = "#22c55e"
-
-    if (
-      clusterId === "cluster-entry"
-    ) {
-
-      previousNode =
-        previousEntryNode
-
-      previousEntryNode =
-        nodeId
-
-      edgeColor =
-        "#22c55e"
+      throw new Error(
+        `HTTP error! status: ${response.status}`
+      )
     }
 
-    else if (
-      clusterId === "cluster-external"
-    ) {
+    const data = await response.json()
 
-      previousNode =
-        previousExternalNode
+    console.log("BACKEND RESPONSE:", data)
 
-      previousExternalNode =
-        nodeId
+    setVulnerabilities(
+      data.vulnerabilities || []
+    )
 
-      edgeColor =
-        "#3b82f6"
-    }
+    setRawOutput(
+      data.raw_output || ""
+    )
 
-    else {
+    setSymbolicTrace(
+      data.symbolic_trace || []
+    )
 
-      previousNode =
-        previousReentryNode
+    setAttackPaths(
+      data.attack_paths || []
+    )
 
-      previousReentryNode =
-        nodeId
-
-      edgeColor =
-        "#ef4444"
-    }
+    setRiskSummary(
+      data.risk_summary || null
+    )
 
     // =================================================
-    // INTERNAL EDGE
+    // BUILD INTERACTIVE GRAPH
     // =================================================
 
-    if (previousNode) {
+    const generatedNodes: any[] = []
 
-      generatedEdges.push({
+    const generatedEdges: any[] = []
 
-        id:
-          `edge-${index}`,
+    let entryY = 120
 
-        source:
-          previousNode,
+    let externalY = 120
 
-        target:
-          nodeId,
+    let reentryY = 120
 
-        animated: true,
+    generatedNodes.push(
 
-        type: "bezier",
-        pathOptions: {
-  curvature: 0.45
-},
+      {
+        id: "cluster-entry",
 
-        markerEnd: {
+        type: "group",
 
-          type: MarkerType.ArrowClosed,
-
-          color: edgeColor
+        position: {
+          x: 0,
+          y: 0
         },
 
         style: {
 
-          stroke:
-            edgeColor,
+          width: 420,
 
-          strokeWidth: 3
-        }
-      })
-    }
+          height: 2200,
 
-    // =================================================
-    // CROSS-CLUSTER FLOW
-    // =================================================
+          background:
+            "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(2,6,23,0.92))",
 
-    if (
+          border:
+            "2px solid rgba(34,197,94,0.18)",
 
-      previousGlobalNode
-
-      &&
-
-      previousGlobalCluster !== clusterId
-
-    ) {
-
-      generatedEdges.push({
-
-        id:
-          `cross-edge-${index}`,
-
-        source:
-          previousGlobalNode,
-
-        target:
-          nodeId,
-
-        animated: true,
-
-        type: "bezier",
-        pathOptions: {
-  curvature: 0.45
-},
-
-        markerEnd: {
-
-          type: MarkerType.ArrowClosed,
-
-          color: "#38bdf8"
+          borderRadius: "24px"
         },
 
-style: {
+        data: {
+          label: "🟢 ENTRY FLOW"
+        }
+      },
 
-  stroke: "#38bdf8",
+      {
+        id: "cluster-external",
 
-  strokeWidth: 2,
+        type: "group",
 
-  strokeDasharray: "12 8",
+        position: {
+          x: 620,
+          y: 0
+        },
 
-  opacity: 0.28
+        style: {
+
+          width: 420,
+
+          height: 2200,
+
+          background:
+            "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(2,6,23,0.92))",
+
+          border:
+            "2px solid rgba(59,130,246,0.18)",
+
+          borderRadius: "24px"
+        },
+
+        data: {
+          label: "🔵 EXTERNAL CALLS"
+        }
+      },
+
+      {
+        id: "cluster-reentry",
+
+        type: "group",
+
+        position: {
+          x: 1240,
+          y: 0
+        },
+
+        style: {
+
+          width: 420,
+
+          height: 2200,
+
+          background:
+            "linear-gradient(180deg, rgba(15,23,42,0.82), rgba(2,6,23,0.92))",
+
+          border:
+            "2px solid rgba(239,68,68,0.18)",
+
+          borderRadius: "24px"
+        },
+
+        data: {
+          label: "🔴 REENTRANCY"
+        }
+      }
+    )
+
+    let previousEntryNode: string | null = null
+
+    let previousExternalNode: string | null = null
+
+    let previousReentryNode: string | null = null
+
+    ;(
+      data.symbolic_trace || []
+    ).forEach(
+
+      (
+        trace: string,
+        index: number
+      ) => {
+
+        const nodeId =
+          `node-${index}`
+
+        let clusterId =
+          "cluster-entry"
+
+        if (
+          trace.includes("[CALL]")
+        ) {
+
+          clusterId =
+            "cluster-external"
+        }
+
+        else if (
+          trace.includes("[REENTRY]")
+        ) {
+
+          clusterId =
+            "cluster-reentry"
+        }
+
+        let nodeY = entryY
+
+        if (
+          clusterId === "cluster-external"
+        ) {
+
+          nodeY = externalY
+
+          externalY += 150
+        }
+
+        else if (
+          clusterId === "cluster-reentry"
+        ) {
+
+          nodeY = reentryY
+
+          reentryY += 150
+        }
+
+        else {
+
+          nodeY = entryY
+
+          entryY += 150
+        }
+
+        generatedNodes.push({
+
+          id: nodeId,
+
+          parentNode: clusterId,
+
+          extent: "parent",
+
+          position: {
+
+            x: 40,
+
+            y: nodeY
+          },
+
+          data: {
+            label: trace
+          },
+
+          style: {
+
+            width: 300,
+
+            minHeight: 90,
+
+            padding: "16px",
+
+            borderRadius: "18px",
+
+            color: "white",
+
+            fontWeight: "700",
+
+            fontSize: "13px",
+
+            display: "flex",
+
+            alignItems: "center",
+
+            justifyContent: "center",
+
+            textAlign: "center",
+
+            background:
+
+              clusterId === "cluster-reentry"
+
+                ? "linear-gradient(145deg,#450a0a,#7f1d1d)"
+
+                : clusterId === "cluster-external"
+
+                ? "linear-gradient(145deg,#172554,#2563eb)"
+
+                : "linear-gradient(145deg,#052e16,#166534)"
+          }
+        })
+
+        let previousNode = null
+
+        let edgeColor = "#22c55e"
+
+        if (
+          clusterId === "cluster-entry"
+        ) {
+
+          previousNode =
+            previousEntryNode
+
+          previousEntryNode =
+            nodeId
+        }
+
+        else if (
+          clusterId === "cluster-external"
+        ) {
+
+          previousNode =
+            previousExternalNode
+
+          previousExternalNode =
+            nodeId
+
+          edgeColor =
+            "#3b82f6"
+        }
+
+        else {
+
+          previousNode =
+            previousReentryNode
+
+          previousReentryNode =
+            nodeId
+
+          edgeColor =
+            "#ef4444"
+        }
+
+        if (previousNode) {
+
+          generatedEdges.push({
+
+            id:
+              `edge-${index}`,
+
+            source:
+              previousNode,
+
+            target:
+              nodeId,
+
+            animated: true,
+
+            type: "bezier",
+
+            markerEnd: {
+
+              type: MarkerType.ArrowClosed,
+
+              color: edgeColor
+            },
+
+            style: {
+
+              stroke:
+                edgeColor,
+
+              strokeWidth: 3
+            }
+          })
+        }
+      }
+    )
+
+    setNodes(generatedNodes)
+
+    setEdges(generatedEdges)
+
+  } catch (err) {
+
+    console.error(err)
+
+    alert("Analysis failed")
+  }
+
+  setLoading(false)
 }
-      })
-    }
-
-    previousGlobalNode =
-      nodeId
-
-    previousGlobalCluster =
-      clusterId
-  }
-)
-
-setNodes(generatedNodes)
-
-setEdges(generatedEdges)
-
-    } catch (err) {
-
-      console.error(err)
-
-      alert("Analysis failed")
-    }
-
-    setLoading(false)
-  }
-
 
   // =====================================================
   // DOWNLOAD PDF REPORT
@@ -1815,9 +1660,10 @@ return (
 
 </div>
 
- {/* ================================================= */}
-{/* SYMBOLIC EXECUTION */}
-{/* ================================================= */}
+/* ===================================================== */
+/* SYMBOLIC EXECUTION */
+/* ===================================================== */
+
 <div
   id="symbolic"
   className="glass-card dashboard-section"
@@ -1826,31 +1672,32 @@ return (
   {/* SECTION HEADER */}
   <div className="section-header">
 
-<h2
-  onClick={() =>
-    setShowSymbolic(
-      !showSymbolic
-    )
-  }
-  className="section-title"
-  style={{
-    cursor: "pointer"
-  }}
->
+    <h2
+      onClick={() =>
+        setShowSymbolic(
+          !showSymbolic
+        )
+      }
+      className="section-title"
+      style={{
+        cursor: "pointer"
+      }}
+    >
 
-  <Bug size={22} />
+      <Bug size={22} />
 
-  {
-    showSymbolic
-      ? "▼"
-      : "▶"
-  }
+      {
+        showSymbolic
+          ? "▼"
+          : "▶"
+      }
 
-  {" "}
+      {" "}
 
-  Symbolic Execution Trace
+      Symbolic Execution Trace
 
-</h2>
+    </h2>
+
     <div className="status-pill blue">
 
       {
@@ -1875,19 +1722,147 @@ return (
 
             <div
               style={{
+
                 marginTop: "24px",
-                padding: "24px",
-                borderRadius: "18px",
+
+                padding: "28px",
+
+                borderRadius: "22px",
+
                 background:
-                  "rgba(59,130,246,0.08)",
+                  "linear-gradient(145deg, rgba(15,23,42,0.92), rgba(2,6,23,0.92))",
+
                 border:
-                  "1px solid rgba(59,130,246,0.18)",
+                  "1px solid rgba(148,163,184,0.16)",
+
                 color:
-                  "#60a5fa"
+                  "#cbd5e1",
+
+                lineHeight: "1.9"
               }}
             >
 
-              ⚡ No symbolic execution trace found
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  marginBottom: "18px"
+                }}
+              >
+
+                <div
+                  style={{
+                    fontSize: "26px"
+                  }}
+                >
+                  ⚡
+                </div>
+
+                <h3
+                  style={{
+                    margin: 0,
+                    color: "white",
+                    fontSize: "20px"
+                  }}
+                >
+                  No Executable Attack Flow Generated
+                </h3>
+
+              </div>
+
+              <p
+                style={{
+                  marginTop: 0,
+                  color: "#94a3b8"
+                }}
+              >
+                Static vulnerabilities were detected
+                successfully, but this contract did not
+                produce a symbolic exploit execution path.
+              </p>
+
+              <div
+                style={{
+                  marginTop: "22px",
+                  display: "grid",
+                  gap: "14px"
+                }}
+              >
+
+                <div
+                  style={{
+                    padding: "16px",
+                    borderRadius: "16px",
+                    background:
+                      "rgba(34,197,94,0.06)",
+                    border:
+                      "1px solid rgba(34,197,94,0.14)"
+                  }}
+                >
+
+                  <div
+                    style={{
+                      color: "#4ade80",
+                      fontWeight: "700",
+                      marginBottom: "6px"
+                    }}
+                  >
+                    ✓ Static Analysis Active
+                  </div>
+
+                  <div
+                    style={{
+                      color: "#cbd5e1",
+                      fontSize: "14px"
+                    }}
+                  >
+                    Ownership risks, minting issues,
+                    royalty manipulation, interface
+                    violations, and unsafe logic
+                    were analyzed successfully.
+                  </div>
+
+                </div>
+
+                <div
+                  style={{
+                    padding: "16px",
+                    borderRadius: "16px",
+                    background:
+                      "rgba(59,130,246,0.06)",
+                    border:
+                      "1px solid rgba(59,130,246,0.14)"
+                  }}
+                >
+
+                  <div
+                    style={{
+                      color: "#60a5fa",
+                      fontWeight: "700",
+                      marginBottom: "6px"
+                    }}
+                  >
+                    ℹ Symbolic Execution Trigger
+                  </div>
+
+                  <div
+                    style={{
+                      color: "#cbd5e1",
+                      fontSize: "14px"
+                    }}
+                  >
+                    Attack graphs are generated only
+                    for executable exploit flows such as
+                    reentrancy, delegatecall abuse,
+                    ownership corruption,
+                    taint propagation,
+                    and cross-contract attacks.
+                  </div>
+
+                </div>
+
+              </div>
 
             </div>
 
@@ -1906,66 +1881,68 @@ return (
                 symbolicTrace.map(
                   (trace, index) => {
 
-let color = "#38bdf8"
+                    let color = "#38bdf8"
 
-let bg =
-  "rgba(56,189,248,0.08)"
+                    let bg =
+                      "rgba(56,189,248,0.08)"
 
-let border =
-  "1px solid rgba(56,189,248,0.18)"
+                    let border =
+                      "1px solid rgba(56,189,248,0.18)"
 
-let label =
-  "EXECUTION TRACE"
-if (
-  trace.includes("⚠")
-) {
+                    let label =
+                      "EXECUTION TRACE"
 
-  color = "#ef4444"
+                    if (
+                      trace.includes("⚠")
+                    ) {
 
-  bg =
-    "rgba(239,68,68,0.08)"
+                      color = "#ef4444"
 
-  border =
-    "1px solid rgba(239,68,68,0.18)"
+                      bg =
+                        "rgba(239,68,68,0.08)"
 
-  label =
-    "SECURITY WARNING"
+                      border =
+                        "1px solid rgba(239,68,68,0.18)"
 
-}
+                      label =
+                        "SECURITY WARNING"
 
-else if (
-  trace.includes("External contract")
-) {
+                    }
 
-  color = "#facc15"
+                    else if (
+                      trace.includes("External contract")
+                    ) {
 
-  bg =
-    "rgba(250,204,21,0.08)"
+                      color = "#facc15"
 
-  border =
-    "1px solid rgba(250,204,21,0.18)"
+                      bg =
+                        "rgba(250,204,21,0.08)"
 
-  label =
-    "EXTERNAL INTERACTION"
+                      border =
+                        "1px solid rgba(250,204,21,0.18)"
 
-}
+                      label =
+                        "EXTERNAL INTERACTION"
 
-else if (
-  trace.includes("[PATH BLOCKED]")
-) {
+                    }
 
-  color = "#60a5fa"
+                    else if (
+                      trace.includes("[PATH BLOCKED]")
+                    ) {
 
-  bg =
-    "rgba(59,130,246,0.08)"
+                      color = "#60a5fa"
 
-  border =
-    "1px solid rgba(59,130,246,0.18)"
+                      bg =
+                        "rgba(59,130,246,0.08)"
 
-  label =
-    "BLOCKED EXECUTION"
+                      border =
+                        "1px solid rgba(59,130,246,0.18)"
 
-}
+                      label =
+                        "BLOCKED EXECUTION"
+
+                    }
+
                     return (
 
                       <div
@@ -2602,7 +2579,7 @@ export default App
 //       setLoading(true)
 
 //       const response = await fetch(
-//         "http://127.0.0.1:8000/analyze",
+//         "https://nft-security-analyzer.onrender.com",
 //         {
 //           method: "POST",
 //           body: formData
