@@ -2,7 +2,6 @@ from nftscanner.symbolic_execution.executor.explainer import (
     explain_instruction
 )
 
-from copy import deepcopy
 import re
 from collections import defaultdict
 
@@ -197,23 +196,46 @@ class EVMState:
         self.owner_history = defaultdict(list)
 
     # =====================================================
-    # FORK STATE
+    # FORK STATE (OPTIMIZED)
     # =====================================================
     def fork(self):
 
-        new = deepcopy(self)
+        new = EVMState(
+            pid=self.path_id + "->fork"
+        )
 
+        # -------------------------------------------------
+        # SAFE SOLVER COPY
+        # -------------------------------------------------
         new.solver = Solver()
 
         new.solver.add(
             self.solver.assertions()
         )
 
-        new.path_id = (
-            self.path_id + "->fork"
+        # -------------------------------------------------
+        # LIGHTWEIGHT STATE COPY
+        # -------------------------------------------------
+        new.storage = dict(
+            self.storage
         )
 
-        new.visited = set()
+        new.balance = defaultdict(
+            lambda: Int("bal"),
+            self.balance
+        )
+
+        new.tainted = set(
+            self.tainted
+        )
+
+        new.taint_flow = list(
+            self.taint_flow
+        )
+
+        new.exploit_chain = list(
+            self.exploit_chain
+        )
 
         new.call_stack = list(
             self.call_stack
@@ -227,8 +249,30 @@ class EVMState:
             self.contract_trace
         )
 
-        new.exploit_chain = list(
-            self.exploit_chain
+        new.visited = set()
+
+        new.state_written_after_call = (
+            self.state_written_after_call
+        )
+
+        new.external_call_seen = (
+            self.external_call_seen
+        )
+
+        new.last_owner_change = (
+            self.last_owner_change
+        )
+
+        new.last_balance_change = (
+            self.last_balance_change
+        )
+
+        new.owner_history = defaultdict(
+            list,
+            {
+                k: list(v)
+                for k, v in self.owner_history.items()
+            }
         )
 
         return new
@@ -254,6 +298,8 @@ class Executor:
         self.sym = SymbolicExpressionEngine()
 
         self.tracer = ExecutionTracer()
+
+        self.max_steps = 300
 
     # =====================================================
     # RUN ENGINE
@@ -297,7 +343,22 @@ class Executor:
 
         queue = [start_node]
 
+        step_counter = 0
+
         while queue:
+
+            step_counter += 1
+
+            # -------------------------------------------------
+            # EXECUTION LIMIT
+            # -------------------------------------------------
+            if step_counter > self.max_steps:
+
+                print(
+                    "[PATH BLOCKED] Symbolic execution limit reached"
+                )
+
+                break
 
             node = queue.pop(0)
 
@@ -318,21 +379,15 @@ class Executor:
             )
 
             # -------------------------------------------------
-            # HUMAN READABLE TRACE
+            # HUMAN TRACE
             # -------------------------------------------------
             human_text = explain_instruction(
                 t,
                 node.statements
             )
 
-            # -------------------------------------------------
-            # SKIP LOW VALUE TRACE EVENTS
-            # -------------------------------------------------
             if human_text:
 
-                # ---------------------------------------------
-                # SKIP DUPLICATE TRACE EVENTS
-                # ---------------------------------------------
                 if (
                     human_text
                     not in self.seen_traces
@@ -415,8 +470,7 @@ class Executor:
                     ):
 
                         print(
-                            "[PATH BLOCKED] "
-                            "Requirement failed"
+                            "[PATH BLOCKED] Requirement failed"
                         )
 
                         continue
@@ -436,6 +490,17 @@ class Executor:
                     "target",
                     "UNKNOWN"
                 )
+
+                # -------------------------------------------------
+                # RECURSION BLOCK
+                # -------------------------------------------------
+                if target in state.call_stack:
+
+                    print(
+                        f"[PATH BLOCKED] Recursive call prevented → {target}"
+                    )
+
+                    continue
 
                 state.exploit_chain.append(
                     target
