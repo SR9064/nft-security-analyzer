@@ -76,7 +76,7 @@ async def analyze_contract(
             )
 
         # -------------------------------------------------
-        # RUN ANALYZER DIRECTLY
+        # RUN ANALYZER
         # -------------------------------------------------
         print(
             "[API] Running analyzer..."
@@ -120,11 +120,40 @@ async def analyze_contract(
 
         for vuln in symbolic_vulns:
 
-            attack_flow = vuln.get(
-                "attack_flow"
+            vuln_type = vuln.get(
+                "type",
+                ""
             )
 
-            if attack_flow:
+            attack_flow = vuln.get(
+                "attack_flow",
+                ""
+            )
+
+            exploit_chain = vuln.get(
+                "exploit_chain",
+                []
+            )
+
+            # -------------------------------------------------
+            # REENTRANCY
+            # -------------------------------------------------
+            if "REENTRANCY" in vuln_type:
+
+                for target in exploit_chain:
+
+                    symbolic_trace.append(
+                        f"[CALL] External contract call → {target}"
+                    )
+
+                symbolic_trace.append(
+                    f"[REENTRY] {attack_flow}"
+                )
+
+            # -------------------------------------------------
+            # GENERIC ATTACK FLOW
+            # -------------------------------------------------
+            elif attack_flow:
 
                 symbolic_trace.append(
                     f"[TRACE] {attack_flow}"
