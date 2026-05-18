@@ -1,0 +1,70 @@
+:root {
+
+  --bg:
+    #020617;
+
+  --bg-card:
+    rgba(15, 23, 42, 0.72);
+
+  --primary:
+    #38bdf8;
+
+  --primary-light:
+    #7dd3fc;
+
+  --accent:
+    #6366f1;
+
+  --text:
+    #f8fafc;
+
+  --muted:
+    #94a3b8;
+
+  --glass-border:
+    rgba(255,255,255,0.08);
+
+  --danger:
+    #ef4444;
+
+  --warning:
+    #f59e0b;
+
+  --success:
+    #22c55e;
+
+  --purple:
+    #9333ea;
+
+  --radius:
+    18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+
+  margin: 0;
+
+  font-family:
+    'Inter',
+    sans-serif;
+
+  background:
+    radial-gradient(
+      circle at top,
+      #0b1d46 0%,
+      #07132b 30%,
+      #020617 70%
+    );
+
+  color:
+    #f8fafc;
+
+  overflow-x: hidden;
+}
+html {
+  scroll-behavior: smooth;
+}

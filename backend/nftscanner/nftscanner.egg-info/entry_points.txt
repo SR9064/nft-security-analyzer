@@ -1,0 +1,2 @@
+[console_scripts]
+nftscan = nftscanner.cli:cli

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nftscanner"
+version = "1.0"
+description = "NFT Static Analysis Tool for Vulnerability Detection"
+authors = [
+    {name = "Saheli"}
+]
+dependencies = [
+    "solidity-parser",
+    "z3-solver",
+    "rich"
+]
+
+[project.scripts]
+nftscan = "nftscanner.cli:cli"
