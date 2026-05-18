@@ -318,11 +318,24 @@ class Executor:
             # -------------------------------------------------
             # HUMAN READABLE TRACE
             # -------------------------------------------------
-            human_text = explain_instruction(
+            human = explain_instruction(
                 t,
                 node.statements
             )
 
+            # -------------------------------------------------
+            # NORMALIZE TRACE
+            # -------------------------------------------------
+            if isinstance(human, dict):
+
+                human_text = human.get(
+                    "title",
+                    str(human)
+                )
+
+            else:
+
+                human_text = str(human)
             # -------------------------------------------------
             # RICH TRACE OUTPUT
             # -------------------------------------------------

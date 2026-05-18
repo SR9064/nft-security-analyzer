@@ -122,7 +122,14 @@ const analyzeContract = async () => {
 
     const data = await response.json()
 
-    console.log("BACKEND RESPONSE:", data)
+    console.log(
+      "BACKEND RESPONSE:",
+      data
+    )
+
+    // =================================================
+    // BACKEND DATA
+    // =================================================
 
     setVulnerabilities(
       data.vulnerabilities || []
@@ -158,12 +165,14 @@ const analyzeContract = async () => {
 
     let reentryY = 120
 
+    // =================================================
+    // VISUAL CLUSTERS
+    // =================================================
+
     generatedNodes.push(
 
       {
         id: "cluster-entry",
-
-        type: "group",
 
         position: {
           x: 0,
@@ -187,13 +196,15 @@ const analyzeContract = async () => {
 
         data: {
           label: "🟢 ENTRY FLOW"
-        }
+        },
+
+        draggable: false,
+
+        selectable: false
       },
 
       {
         id: "cluster-external",
-
-        type: "group",
 
         position: {
           x: 620,
@@ -217,13 +228,15 @@ const analyzeContract = async () => {
 
         data: {
           label: "🔵 EXTERNAL CALLS"
-        }
+        },
+
+        draggable: false,
+
+        selectable: false
       },
 
       {
         id: "cluster-reentry",
-
-        type: "group",
 
         position: {
           x: 1240,
@@ -247,7 +260,11 @@ const analyzeContract = async () => {
 
         data: {
           label: "🔴 REENTRANCY"
-        }
+        },
+
+        draggable: false,
+
+        selectable: false
       }
     )
 
@@ -315,17 +332,33 @@ const analyzeContract = async () => {
           entryY += 150
         }
 
+        // =============================================
+        // FIXED POSITIONING
+        // =============================================
+
+        let nodeX = 40
+
+        if (
+          clusterId === "cluster-external"
+        ) {
+
+          nodeX = 680
+        }
+
+        else if (
+          clusterId === "cluster-reentry"
+        ) {
+
+          nodeX = 1320
+        }
+
         generatedNodes.push({
 
           id: nodeId,
 
-          parentNode: clusterId,
-
-          extent: "parent",
-
           position: {
 
-            x: 40,
+            x: nodeX,
 
             y: nodeY
           },
@@ -428,7 +461,7 @@ const analyzeContract = async () => {
 
             animated: true,
 
-            type: "bezier",
+            type: "smoothstep",
 
             markerEnd: {
 
@@ -447,6 +480,16 @@ const analyzeContract = async () => {
           })
         }
       }
+    )
+
+    console.log(
+      "GENERATED NODES:",
+      generatedNodes
+    )
+
+    console.log(
+      "GENERATED EDGES:",
+      generatedEdges
     )
 
     setNodes(generatedNodes)
@@ -1660,10 +1703,9 @@ return (
 
 </div>
 
-/* ===================================================== */
-/* SYMBOLIC EXECUTION */
-/* ===================================================== */
-
+ {/* ================================================= */}
+{/* SYMBOLIC EXECUTION */}
+{/* ================================================= */}
 <div
   id="symbolic"
   className="glass-card dashboard-section"
@@ -1672,32 +1714,31 @@ return (
   {/* SECTION HEADER */}
   <div className="section-header">
 
-    <h2
-      onClick={() =>
-        setShowSymbolic(
-          !showSymbolic
-        )
-      }
-      className="section-title"
-      style={{
-        cursor: "pointer"
-      }}
-    >
+<h2
+  onClick={() =>
+    setShowSymbolic(
+      !showSymbolic
+    )
+  }
+  className="section-title"
+  style={{
+    cursor: "pointer"
+  }}
+>
 
-      <Bug size={22} />
+  <Bug size={22} />
 
-      {
-        showSymbolic
-          ? "▼"
-          : "▶"
-      }
+  {
+    showSymbolic
+      ? "▼"
+      : "▶"
+  }
 
-      {" "}
+  {" "}
 
-      Symbolic Execution Trace
+  Symbolic Execution Trace
 
-    </h2>
-
+</h2>
     <div className="status-pill blue">
 
       {
@@ -1722,147 +1763,19 @@ return (
 
             <div
               style={{
-
                 marginTop: "24px",
-
-                padding: "28px",
-
-                borderRadius: "22px",
-
+                padding: "24px",
+                borderRadius: "18px",
                 background:
-                  "linear-gradient(145deg, rgba(15,23,42,0.92), rgba(2,6,23,0.92))",
-
+                  "rgba(59,130,246,0.08)",
                 border:
-                  "1px solid rgba(148,163,184,0.16)",
-
+                  "1px solid rgba(59,130,246,0.18)",
                 color:
-                  "#cbd5e1",
-
-                lineHeight: "1.9"
+                  "#60a5fa"
               }}
             >
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  marginBottom: "18px"
-                }}
-              >
-
-                <div
-                  style={{
-                    fontSize: "26px"
-                  }}
-                >
-                  ⚡
-                </div>
-
-                <h3
-                  style={{
-                    margin: 0,
-                    color: "white",
-                    fontSize: "20px"
-                  }}
-                >
-                  No Executable Attack Flow Generated
-                </h3>
-
-              </div>
-
-              <p
-                style={{
-                  marginTop: 0,
-                  color: "#94a3b8"
-                }}
-              >
-                Static vulnerabilities were detected
-                successfully, but this contract did not
-                produce a symbolic exploit execution path.
-              </p>
-
-              <div
-                style={{
-                  marginTop: "22px",
-                  display: "grid",
-                  gap: "14px"
-                }}
-              >
-
-                <div
-                  style={{
-                    padding: "16px",
-                    borderRadius: "16px",
-                    background:
-                      "rgba(34,197,94,0.06)",
-                    border:
-                      "1px solid rgba(34,197,94,0.14)"
-                  }}
-                >
-
-                  <div
-                    style={{
-                      color: "#4ade80",
-                      fontWeight: "700",
-                      marginBottom: "6px"
-                    }}
-                  >
-                    ✓ Static Analysis Active
-                  </div>
-
-                  <div
-                    style={{
-                      color: "#cbd5e1",
-                      fontSize: "14px"
-                    }}
-                  >
-                    Ownership risks, minting issues,
-                    royalty manipulation, interface
-                    violations, and unsafe logic
-                    were analyzed successfully.
-                  </div>
-
-                </div>
-
-                <div
-                  style={{
-                    padding: "16px",
-                    borderRadius: "16px",
-                    background:
-                      "rgba(59,130,246,0.06)",
-                    border:
-                      "1px solid rgba(59,130,246,0.14)"
-                  }}
-                >
-
-                  <div
-                    style={{
-                      color: "#60a5fa",
-                      fontWeight: "700",
-                      marginBottom: "6px"
-                    }}
-                  >
-                    ℹ Symbolic Execution Trigger
-                  </div>
-
-                  <div
-                    style={{
-                      color: "#cbd5e1",
-                      fontSize: "14px"
-                    }}
-                  >
-                    Attack graphs are generated only
-                    for executable exploit flows such as
-                    reentrancy, delegatecall abuse,
-                    ownership corruption,
-                    taint propagation,
-                    and cross-contract attacks.
-                  </div>
-
-                </div>
-
-              </div>
+              ⚡ No symbolic execution trace found
 
             </div>
 
@@ -1881,68 +1794,66 @@ return (
                 symbolicTrace.map(
                   (trace, index) => {
 
-                    let color = "#38bdf8"
+let color = "#38bdf8"
 
-                    let bg =
-                      "rgba(56,189,248,0.08)"
+let bg =
+  "rgba(56,189,248,0.08)"
 
-                    let border =
-                      "1px solid rgba(56,189,248,0.18)"
+let border =
+  "1px solid rgba(56,189,248,0.18)"
 
-                    let label =
-                      "EXECUTION TRACE"
+let label =
+  "EXECUTION TRACE"
+if (
+  trace.includes("⚠")
+) {
 
-                    if (
-                      trace.includes("⚠")
-                    ) {
+  color = "#ef4444"
 
-                      color = "#ef4444"
+  bg =
+    "rgba(239,68,68,0.08)"
 
-                      bg =
-                        "rgba(239,68,68,0.08)"
+  border =
+    "1px solid rgba(239,68,68,0.18)"
 
-                      border =
-                        "1px solid rgba(239,68,68,0.18)"
+  label =
+    "SECURITY WARNING"
 
-                      label =
-                        "SECURITY WARNING"
+}
 
-                    }
+else if (
+  trace.includes("External contract")
+) {
 
-                    else if (
-                      trace.includes("External contract")
-                    ) {
+  color = "#facc15"
 
-                      color = "#facc15"
+  bg =
+    "rgba(250,204,21,0.08)"
 
-                      bg =
-                        "rgba(250,204,21,0.08)"
+  border =
+    "1px solid rgba(250,204,21,0.18)"
 
-                      border =
-                        "1px solid rgba(250,204,21,0.18)"
+  label =
+    "EXTERNAL INTERACTION"
 
-                      label =
-                        "EXTERNAL INTERACTION"
+}
 
-                    }
+else if (
+  trace.includes("[PATH BLOCKED]")
+) {
 
-                    else if (
-                      trace.includes("[PATH BLOCKED]")
-                    ) {
+  color = "#60a5fa"
 
-                      color = "#60a5fa"
+  bg =
+    "rgba(59,130,246,0.08)"
 
-                      bg =
-                        "rgba(59,130,246,0.08)"
+  border =
+    "1px solid rgba(59,130,246,0.18)"
 
-                      border =
-                        "1px solid rgba(59,130,246,0.18)"
+  label =
+    "BLOCKED EXECUTION"
 
-                      label =
-                        "BLOCKED EXECUTION"
-
-                    }
-
+}
                     return (
 
                       <div
@@ -2160,6 +2071,8 @@ animation: "gradientMove 18s ease infinite"
 <ReactFlow
   nodes={nodes}
   edges={edges}
+ 
+
   fitView
   fitViewOptions={{
     padding: 0.4
@@ -2168,7 +2081,7 @@ animation: "gradientMove 18s ease infinite"
   hideAttribution: true
 }}
 defaultEdgeOptions={{
-  type: "bezier",
+  type: "smoothstep",
   animated: true
 }}
 minZoom={0.4}
