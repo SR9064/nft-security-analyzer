@@ -170,7 +170,7 @@ def run(contract_path, verbose=False):
     symbolic_vulns = run_evm(ir)
 
     # -------------------------------------------------
-    # MERGE VULNS
+    # MERGE SYMBOLIC VULNS
     # -------------------------------------------------
     issues.extend(symbolic_vulns)
 
@@ -199,7 +199,13 @@ def run(contract_path, verbose=False):
         issues,
 
         "symbolic_vulns":
-        symbolic_vulns
+        symbolic_vulns,
+
+        "risk":
+        risk,
+
+        "level":
+        level
     }
 
 
