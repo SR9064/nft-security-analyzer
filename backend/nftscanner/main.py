@@ -167,12 +167,10 @@ def run(contract_path, verbose=False):
         "\n[SYMBOLIC] Running Symbolic Execution..."
     )
 
-    symbolic_vulns = run_evm(ir)
 
     # -------------------------------------------------
     # MERGE VULNS
     # -------------------------------------------------
-    issues.extend(symbolic_vulns)
 
     # -------------------------------------------------
     # STEP 8 - REPORT
