@@ -330,7 +330,7 @@ async def analyze_contract(
         ],
 
         "graph_url":
-        "http://127.0.0.1:8000/output/call_graph.png",
+        "https://nft-security-analyzer.onrender.com/output/call_graph.png",
 
         "risk_summary": {
 
