@@ -163,14 +163,26 @@ def run(contract_path, verbose=False):
     # -------------------------------------------------
     # STEP 7 - SYMBOLIC EXECUTION
     # -------------------------------------------------
-    print(
-        "\n[SYMBOLIC] Running Symbolic Execution..."
-    )
+    try:
 
+        print(
+            "\n[SYMBOLIC] Running Symbolic Execution..."
+        )
 
-    # -------------------------------------------------
-    # MERGE VULNS
-    # -------------------------------------------------
+        symbolic_vulns = run_evm(ir)
+
+        # -------------------------------------------------
+        # MERGE VULNS
+        # -------------------------------------------------
+        issues.extend(symbolic_vulns)
+
+    except Exception as e:
+
+        print(
+            f"[SYMBOLIC ERROR] {e}"
+        )
+
+        symbolic_vulns = []
 
     # -------------------------------------------------
     # STEP 8 - REPORT
