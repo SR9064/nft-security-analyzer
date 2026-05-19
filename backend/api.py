@@ -43,7 +43,7 @@ def home():
 # =====================================================
 # ANALYZE CONTRACT
 # =====================================================
-@app.post("/docs")
+@app.post("/analyze")
 async def analyze_contract(
     file: UploadFile = File(...)
 ):
