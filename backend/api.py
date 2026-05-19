@@ -11,6 +11,7 @@ app = FastAPI()
 # =====================================================
 # STATIC FILES
 # =====================================================
+os.makedirs("output", exist_ok=True)
 app.mount(
     "/output",
     StaticFiles(directory="output"),
