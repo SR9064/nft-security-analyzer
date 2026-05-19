@@ -77,7 +77,7 @@ async def analyze_contract(
             capture_output=True,
             text=True,
             cwd=os.getcwd(),
-            timeout=20
+            timeout=300
         )
 
         print("[API] Analyzer finished")
