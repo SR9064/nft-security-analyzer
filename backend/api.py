@@ -360,3 +360,8 @@ async def analyze_contract(
             low_count
         }
     }
+@app.get("/")
+def home():
+    return {
+        "status": "backend running"
+    }
