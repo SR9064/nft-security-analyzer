@@ -100,7 +100,7 @@ const [activeSection, setActiveSection] =
       setLoading(true)
 
       const response = await fetch(
-        "https://nft-security-analyzer.onrender.com/analyze",
+        "https://aware-perfection-production-d5be.up.railway.app/analyze",
         {
           method: "POST",
           body: formData
