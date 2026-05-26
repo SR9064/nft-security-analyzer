@@ -12,7 +12,7 @@ import ReactFlow, {
   MarkerType,
   Position
 
-  
+
 } from "reactflow"
 import "reactflow/dist/style.css"
 
@@ -46,11 +46,11 @@ function App() {
 
   const [symbolicTrace, setSymbolicTrace] =
     useState<string[]>([])
-  
+
   const [attackPaths, setAttackPaths] =
   useState<string[]>([])
 
- 
+
 
   const [riskSummary, setRiskSummary] =
     useState<any>(null)
@@ -98,16 +98,20 @@ const [activeSection, setActiveSection] =
     try {
 
       setLoading(true)
+const API_URL =
+  window.location.hostname === "localhost"
+    ? "http://127.0.0.1:8080/analyze"
+    : "https://aware-perfection-production-d5be.up.railway.app/analyze"
 
-      const response = await fetch(
-        "https://aware-perfection-production-d5be.up.railway.app/analyze",
-        {
-          method: "POST",
-          body: formData
-        }
-      )
+const response = await fetch(
+  API_URL,
+  {
+    method: "POST",
+    body: formData
+  }
+)
 
-      const data = await response.json()
+const data = await response.json()
 
       setVulnerabilities(
         data.vulnerabilities || []
@@ -120,26 +124,144 @@ const [activeSection, setActiveSection] =
       setSymbolicTrace(
         data.symbolic_trace || []
       )
-      setAttackPaths(
-  data.attack_paths || []
+const attackPaths =(data.symbolic_trace || []).filter(
+
+(trace: string) =>
+
+  trace.includes("⚠")
+
+  ||
+
+  trace.includes("Reentrancy")
+
+  ||
+
+  trace.includes("[REENTRY]")
+
+  ||
+
+  trace.includes("recursive")
+
+  ||
+
+  trace.includes("cycle")
+
+  ||
+
+  trace.includes("callback")
+
+  ||
+
+  trace.includes("state corruption")
+
+  ||
+
+  trace.includes("execution order")
+
+  ||
+
+  trace.includes("Exploit")
+
+  ||
+
+  trace.includes("attack")
+
+  ||
+
+  trace.includes("drain")
+
+  ||
+
+  trace.includes("unsafe external call")
+
 )
+setAttackPaths
+(attackPaths)
 
+  setRiskSummary(
+    data.risk_summary || null
+  )
 
-
-      setRiskSummary(
-        data.risk_summary || null
-      )
-      
 // =================================================
 // BUILD INTERACTIVE GRAPH
 // =================================================
+const entryCount =
+(
+  data.symbolic_trace || []
+).filter(
+  trace =>
+    !trace.includes("⚠")
+    &&
+    !trace.includes("External")
+).length
+
+const importantTrace =
+(
+  data.symbolic_trace || []
+).filter(
+
+  (trace: string) =>
+
+    trace.includes("Entered function")
+
+    ||
+
+    trace.includes("External contract")
+
+    ||
+
+    trace.includes("External call")
+
+    ||
+
+    trace.includes("state corruption")
+
+    ||
+
+    trace.includes("callback")
+
+    ||
+
+    trace.includes("recursive")
+
+    ||
+
+    trace.includes("Reentrancy")
+
+    ||
+
+    trace.includes("[REENTRY]")
+
+    ||
+
+    trace.includes("Exploit")
+
+    ||
+
+    trace.includes("attack")
+
+    ||
+
+    trace.includes("[PATH BLOCKED]")
+)
 
 const generatedNodes: any[] = []
 
 const generatedEdges: any[] = []
+
 let entryY = 120
+
 let externalY = 120
+
 let reentryY = 120
+
+const dynamicHeight = Math.max(
+  entryY + 120,
+  externalY + 120,
+  reentryY + 120,
+  950
+)
+
 
 generatedNodes.push(
 
@@ -162,7 +284,7 @@ generatedNodes.push(
       width: 420,
       zIndex: 0,
 
-height: 2200,
+height: dynamicHeight,
       overflow: "visible",
 
       background:
@@ -201,7 +323,7 @@ data: {
       width: 420,
       zIndex: 0,
 
-height: 2200,
+height: dynamicHeight,
 
       overflow: "visible",
 
@@ -241,7 +363,7 @@ height: 2200,
       width: 420,
       zIndex: 0,
 
-height: 2200,
+height: dynamicHeight,
 
       overflow: "visible",
 
@@ -263,6 +385,105 @@ height: 2200,
   }
 )
 
+generatedNodes.push(
+
+{id: "title-entry",
+
+position: {x: 80,y: -70},
+
+draggable: false,
+
+selectable: false,
+
+data: {label: "🟢 INTERNAL EXECUTION FLOW"},
+
+style: {
+
+width: 300,
+
+background: "transparent",
+
+color: "#4ade80",
+
+fontSize: "22px",
+
+fontWeight: "800",
+
+border: "none",
+
+textAlign: "center",
+
+boxShadow: "none",
+
+pointerEvents: "none"
+
+},className: "title-node",},
+
+{id: "title-external",
+
+position: {x: 700,y: -70},
+
+draggable: false,
+
+selectable: false,
+
+data: {label: "🔵 EXTERNAL CONTRACT INTERACTIONS"},
+
+style: {
+
+width: 340,
+
+background: "transparent",
+
+color: "#60a5fa",
+
+fontSize: "22px",
+
+fontWeight: "800",
+
+border: "none",
+
+textAlign: "center",
+
+boxShadow: "none",
+
+pointerEvents: "none"
+
+},className: "title-node",},
+
+{id: "title-reentry",
+
+position: {x: 1320,y: -70},
+
+draggable: false,
+
+selectable: false,
+
+data: {label: "🔴 EXPLOIT / ATTACK DETECTION"},
+
+style: {
+
+width: 320,
+
+background: "transparent",
+
+color: "#f87171",
+
+fontSize: "22px",
+
+fontWeight: "800",
+
+border: "none",
+
+textAlign: "center",
+
+boxShadow: "none",
+
+pointerEvents: "none"
+
+},
+className: "title-node",})
+
 // =================================================
 // FLOW TRACKERS
 // =================================================
@@ -280,20 +501,19 @@ let previousGlobalCluster: string | null = null
 // =================================================
 // NODE SPACING
 // =================================================
+let externalCount = 0
+
+let attackCount = 0
 
 
 
 // =================================================
 // TRACE LOOP
 // =================================================
-;(
-  data.symbolic_trace || []
-).forEach(
+importantTrace.forEach(
 
-  (
-    trace: string,
-    index: number
-  ) => {
+(trace: string,index: number) => {
+
 
     const nodeId =
       `node-${index}`
@@ -305,33 +525,47 @@ let previousGlobalCluster: string | null = null
     // DETECT CLUSTER
     // =================================================
 
-    if (
+if (
 
-      trace.includes("[CALL]")
+  (
+    trace.includes("[CALL]")
+    ||
+    trace.includes("External")
+  )
 
-      ||
+  &&
 
-      trace.includes("External")
+  externalCount < 4
 
-    ) {
+) {
 
-      clusterId =
-        "cluster-external"
-    }
+  clusterId =
+    "cluster-external"
 
-    else if (
+  externalCount++
+}
 
-      trace.includes("[REENTRY]")
+else if (
 
-      ||
+  (
+    trace.includes("[REENTRY]")
+    ||
+    trace.includes("Reentrancy")
+    ||
+    trace.includes("⚠")
+  )
 
-      trace.includes("Reentrancy")
+  &&
 
-    ) {
+  attackCount < 4
 
-      clusterId =
-        "cluster-reentry"
-    }
+) {
+
+  clusterId =
+    "cluster-reentry"
+
+  attackCount++
+}
 
     // =================================================
     // POSITIONING
@@ -345,7 +579,7 @@ let previousGlobalCluster: string | null = null
 
       nodeY = externalY
 
-      externalY += 150
+      externalY += 110
     }
 
     else if (
@@ -354,106 +588,110 @@ let previousGlobalCluster: string | null = null
 
       nodeY = reentryY
 
-      reentryY += 150
+      reentryY += 110
     }
 
     else {
 
       nodeY = entryY
 
-      entryY += 150
+      entryY += 110
     }
 
     // =================================================
     // CREATE NODE
     // =================================================
 
-    generatedNodes.push({
+generatedNodes.push({
 
-      id: nodeId,
+  id: nodeId,
 
-      parentNode: clusterId,
+  parentNode: clusterId,
 
-      extent: "parent",
+  extent: "parent",
 
-      sourcePosition: Position.Bottom,
+  sourcePosition: Position.Bottom,
 
-      targetPosition: Position.Top,
+  targetPosition: Position.Top,
 
-      position: {
+  position: {
 
-        x: 30,
+    x: 55,
 
-        y: nodeY
-      },
+    y: nodeY
+  },
 
-      data: {
-        label: trace
-      },
+  data: {
+    label: trace
+  },
 
-      style: {
+  style: {
 
-        width: 300,
-        zIndex: 10,
+    width: 320,
 
-        minHeight: 90,
+    zIndex: 10,
 
-        padding: "16px",
+    minHeight: 90,
 
-        borderRadius: "18px",
+    padding: "16px",
 
-        color: "white",
+    borderRadius: "18px",
 
-        fontWeight: "700",
-        lineHeight: "1.5",
-wordBreak: "break-word",
-textAlign: "center",
-justifyContent: "center",
+    color: "white",
 
-        fontSize: "13px",
+    fontWeight: "700",
 
-        display: "flex",
+    lineHeight: "1.5",
 
-        alignItems: "center",
+    wordBreak: "break-word",
 
-        boxShadow:
+    textAlign: "center",
 
-          clusterId === "cluster-reentry"
+    justifyContent: "center",
 
-            ? "0 0 24px rgba(239,68,68,0.22)"
+    fontSize: "14px",
 
-            : clusterId === "cluster-external"
+    display: "flex",
 
-            ? "0 0 24px rgba(59,130,246,0.22)"
+    alignItems: "center",
 
-            : "0 0 24px rgba(34,197,94,0.18)",
+    boxShadow:
 
-        border:
+      clusterId === "cluster-reentry"
 
-          clusterId === "cluster-reentry"
+        ? "0 0 24px rgba(239,68,68,0.22)"
 
-            ? "1px solid rgba(239,68,68,0.35)"
+        : clusterId === "cluster-external"
 
-            : clusterId === "cluster-external"
+        ? "0 0 24px rgba(59,130,246,0.22)"
 
-            ? "1px solid rgba(59,130,246,0.35)"
+        : "0 0 24px rgba(34,197,94,0.18)",
 
-            : "1px solid rgba(34,197,94,0.35)",
+    border:
 
-        background:
+      clusterId === "cluster-reentry"
 
-          clusterId === "cluster-reentry"
+        ? "1px solid rgba(239,68,68,0.35)"
 
-            ? "linear-gradient(145deg,#450a0a,#7f1d1d)"
+        : clusterId === "cluster-external"
 
-            : clusterId === "cluster-external"
+        ? "1px solid rgba(59,130,246,0.35)"
 
-            ? "linear-gradient(145deg,#172554,#2563eb)"
+        : "1px solid rgba(34,197,94,0.35)",
 
-            : "linear-gradient(145deg,#052e16,#166534)"
-      }
-    })
+    background:
 
+      clusterId === "cluster-reentry"
+
+        ? "linear-gradient(145deg,#450a0a,#7f1d1d)"
+
+        : clusterId === "cluster-external"
+
+        ? "linear-gradient(145deg,#172554,#2563eb)"
+
+        : "linear-gradient(145deg,#052e16,#166534)"
+  }
+})
     // =================================================
     // INTERNAL FLOW
     // =================================================
@@ -521,7 +759,7 @@ justifyContent: "center",
 
         animated: true,
 
-        type: "bezier",
+        type: "smoothstep",
         pathOptions: {
   curvature: 0.45
 },
@@ -570,7 +808,7 @@ justifyContent: "center",
 
         animated: true,
 
-        type: "bezier",
+        type: "smoothstep",
         pathOptions: {
   curvature: 0.45
 },
@@ -788,59 +1026,54 @@ setEdges(generatedEdges)
   // =====================================================
   // DOWNLOAD TXT REPORT
   // =====================================================
-  const downloadTxtReport = () => {
+const downloadTxtReport = () => {
 
-    const textReport = `
+const textReport = `
+
 NFT SECURITY ANALYSIS REPORT
-====================================
 
-RISK SCORE:
-${riskSummary?.score || 0}
+RISK SCORE:${riskSummary?.score || 0}
 
-------------------------------------
 VULNERABILITIES
-------------------------------------
 
 ${vulnerabilities.map((v: any) => `
-- ${v.type}
-  Severity: ${v.severity}
-`).join("\n")}
 
-------------------------------------
+${v.type}Severity: ${v.severity}`).join("\n")}
+
 SYMBOLIC EXECUTION TRACE
-------------------------------------
 
 ${symbolicTrace.join("\n")}
 
-------------------------------------
 RAW ANALYZER OUTPUT
-------------------------------------
 
-${rawOutput}
-`
+${rawOutput}`
 
-    const blob = new Blob(
-      [textReport],
-      {
-        type: "text/plain"
-      }
-    )
-
-    const url =
-      URL.createObjectURL(blob)
-
-    const a =
-      document.createElement("a")
-
-    a.href = url
-
-    a.download =
-      "nft_security_report.txt"
-
-    a.click()
-
-    URL.revokeObjectURL(url)
+const blob = new Blob(
+  [textReport],
+  {
+    type: "text/plain"
   }
+)
+
+const url =
+  URL.createObjectURL(blob)
+
+const a =
+  document.createElement("a")
+
+a.href = url
+
+a.download =
+  "nft_security_report.txt"
+
+a.click()
+
+URL.revokeObjectURL(url)
+
+}
+
+
+
 
  /* ===================================================== */
 /* ACTIVE SIDEBAR TRACKING */
@@ -963,7 +1196,7 @@ return (
         display: "flex"
       }}
     >
-      
+
     {/* ================================================= */}
     {/* SIDEBAR */}
     {/* ================================================= */}

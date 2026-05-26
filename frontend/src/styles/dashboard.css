@@ -1550,3 +1550,90 @@ html {
   background:
     rgba(56,189,248,0.06);
 }
+@keyframes floatNode {
+
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+/* ================================================= */
+/* MOBILE RESPONSIVE */
+/* ================================================= */
+
+@media (max-width: 768px) {
+
+  .sidebar {
+
+    display: none !important;
+  }
+
+  .glass-card {
+
+    padding: 20px !important;
+
+    border-radius: 18px !important;
+  }
+
+  .hero-title {
+
+    font-size: 34px !important;
+  }
+
+  .hero-subtitle {
+
+    font-size: 15px !important;
+  }
+
+  .risk-grid {
+
+    grid-template-columns: 1fr !important;
+  }
+
+  .upload-layout {
+
+    flex-direction: column !important;
+
+    gap: 20px !important;
+  }
+
+  .button-grid {
+
+    width: 100% !important;
+  }
+
+  .action-button {
+
+    width: 100% !important;
+  }
+
+  .graph-container {
+
+    height: 700px !important;
+  }
+
+  .section-title {
+
+    font-size: 18px !important;
+  }
+
+  .trace-card {
+
+    padding: 16px !important;
+  }
+
+  .vulnerability-card {
+
+    padding: 18px !important;
+  }
+}
+.title-node .react-flow__handle {
+  display: none !important;
+}

@@ -10,8 +10,9 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://lknmm.netlify.app/",
-        "http://localhost:5173"
+         "http://localhost:5173",
+"http://127.0.0.1:5173",
+"https://nft-security-analyzer.vercel.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -247,16 +248,6 @@ async def analyze_contract(
     # -------------------------------------------------
     # SYMBOLIC EXECUTION VULNS
     # -------------------------------------------------
-    if "VULNS:" in output:
-
-        vulnerabilities.append({
-
-            "type":
-            "Symbolic Execution Attack",
-
-            "severity":
-            "CRITICAL"
-        })
 
     # -------------------------------------------------
     # REENTRANCY
@@ -276,43 +267,42 @@ async def analyze_contract(
         })
 
     # =====================================================
-    # RISK METRICS
+    # EXTRACT FINAL RISK SCORE
     # =====================================================
-    critical_count = 0
-    high_count = 0
-    medium_count = 0
-    low_count = 0
+    risk_score = 0
 
-    for vuln in vulnerabilities:
+    for line in output.split("\n"):
 
-        severity = vuln.get(
-            "severity",
-            ""
-        ).upper()
+        if "Overall Risk Score:" in line:
 
-        if severity == "CRITICAL":
+            try:
 
-            critical_count += 1
+                risk_score = int(
+                    line.split(":")[1].strip()
+                )
 
-        elif severity == "HIGH":
+            except:
 
-            high_count += 1
+                risk_score = 0
+    critical_count = len([
+        v for v in vulnerabilities
+        if v["severity"] == "CRITICAL"
+    ])
 
-        elif severity == "MEDIUM":
+    high_count = len([
+        v for v in vulnerabilities
+        if v["severity"] == "HIGH"
+    ])
 
-            medium_count += 1
+    medium_count = len([
+        v for v in vulnerabilities
+        if v["severity"] == "MEDIUM"
+    ])
 
-        elif severity == "LOW":
-
-            low_count += 1
-
-    risk_score = (
-        critical_count * 10
-        + high_count * 7
-        + medium_count * 4
-        + low_count * 1
-    )
-
+    low_count = len([
+        v for v in vulnerabilities
+        if v["severity"] == "LOW"
+    ])
     # =====================================================
     # RESPONSE
     # =====================================================

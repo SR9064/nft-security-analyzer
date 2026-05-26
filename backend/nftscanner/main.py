@@ -95,7 +95,66 @@ def run(contract_path, verbose=False):
     )
 
     # -------------------------------------------------
-    # RISK MODEL
+    # STEP 6 - BUILD IR
+    # -------------------------------------------------
+    print(
+        "\n[IR] Building Normalized IR..."
+    )
+
+    ir = build_ir(ast)
+
+    print(
+        "[IR] IR Generation Complete"
+    )
+
+    symbolic_vulns = []
+
+    # -------------------------------------------------
+    # STEP 7 - SYMBOLIC EXECUTION
+    # -------------------------------------------------
+    try:
+
+        print(
+            "\n[SYMBOLIC] Running Symbolic Execution..."
+        )
+
+        evm_result = run_evm(ir)
+
+        # -------------------------------------------------
+        # MERGE EVM VULNERABILITIES
+        # -------------------------------------------------
+        issues.extend(
+
+            evm_result.get(
+                "vulnerabilities",
+                []
+            )
+        )
+
+        # -------------------------------------------------
+        # MERGE SYMBOLIC VULNERABILITIES
+        # -------------------------------------------------
+        issues.extend(
+
+            evm_result.get(
+                "symbolic_vulnerabilities",
+                []
+            )
+        )
+
+        symbolic_vulns = evm_result.get(
+            "symbolic_vulnerabilities",
+            []
+        )
+
+    except Exception as e:
+
+        print(
+            f"[SYMBOLIC ERROR] {e}"
+        )
+
+    # -------------------------------------------------
+    # FINAL RISK MODEL
     # -------------------------------------------------
     risk = 0
 
@@ -123,13 +182,13 @@ def run(contract_path, verbose=False):
             risk += 1
 
     # -------------------------------------------------
-    # STEP 5 - RISK LEVEL
+    # FINAL RISK LEVEL
     # -------------------------------------------------
-    if risk >= 10:
+    if risk >= 30:
 
         level = "HIGH"
 
-    elif risk >= 5:
+    elif risk >= 15:
 
         level = "MEDIUM"
 
@@ -140,49 +199,12 @@ def run(contract_path, verbose=False):
     if verbose:
 
         print(
-            f"[STEP 5] Risk Score: {risk}"
+            f"[FINAL RISK SCORE] {risk}"
         )
 
         print(
-            f"[STEP 6] Risk Level: {level}"
+            f"[FINAL RISK LEVEL] {level}"
         )
-
-    # -------------------------------------------------
-    # STEP 6 - BUILD IR
-    # -------------------------------------------------
-    print(
-        "\n[IR] Building Normalized IR..."
-    )
-
-    ir = build_ir(ast)
-
-    print(
-        "[IR] IR Generation Complete"
-    )
-
-    # -------------------------------------------------
-    # STEP 7 - SYMBOLIC EXECUTION
-    # -------------------------------------------------
-    try:
-
-        print(
-            "\n[SYMBOLIC] Running Symbolic Execution..."
-        )
-
-        symbolic_vulns = run_evm(ir)
-
-        # -------------------------------------------------
-        # MERGE VULNS
-        # -------------------------------------------------
-        issues.extend(symbolic_vulns)
-
-    except Exception as e:
-
-        print(
-            f"[SYMBOLIC ERROR] {e}"
-        )
-
-        symbolic_vulns = []
 
     # -------------------------------------------------
     # STEP 8 - REPORT

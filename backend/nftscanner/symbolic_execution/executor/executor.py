@@ -4,9 +4,12 @@ from nftscanner.symbolic_execution.executor.explainer import (
 
 from copy import deepcopy
 import re
+
 from collections import defaultdict
 
-from nftscanner.core.ir.cfg_builder import build_cfg
+from nftscanner.core.ir.cfg_builder import (
+    build_cfg
+)
 
 from nftscanner.symbolic_execution.executor.tracer import (
     ExecutionTracer
@@ -24,8 +27,6 @@ from z3 import (
     Or,
     sat
 )
-
-
 # =========================================================
 # SYMBOLIC EXPRESSION ENGINE
 # =========================================================
@@ -255,6 +256,7 @@ class Executor:
 
         self.tracer = ExecutionTracer()
 
+        self.detected_vulnerabilities = []
     # =====================================================
     # RUN ENGINE
     # =====================================================
@@ -475,8 +477,7 @@ class Executor:
                 if (
                     recursive
                     and state.external_call_seen
-                    and state.state_written_after_call
-                ):
+                    ):
 
                     if validate_reentrancy(
                         state
@@ -515,6 +516,21 @@ class Executor:
                                 )
                             })
 
+                            self.detected_vulnerabilities.append({
+
+                                "type":
+                                "Cross-Function Reentrancy",
+
+                                "severity":
+                                "HIGH",
+
+                                "confidence":
+                                "HIGH",
+
+                                "validated":
+                                True
+                            })
+
             # =================================================
             # NEXT NODES
             # =================================================
@@ -534,7 +550,6 @@ class Executor:
 
                 state.call_stack.pop()
 
-
 # =========================================================
 # API
 # =========================================================
@@ -548,4 +563,11 @@ def run_evm(ir):
 
     print("VULNS:", res)
 
-    return res
+    return {
+
+        "vulnerabilities":
+            res,
+
+        "symbolic_vulnerabilities":
+            ex.detected_vulnerabilities
+    }
