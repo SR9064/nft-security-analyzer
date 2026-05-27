@@ -2025,29 +2025,81 @@ return (
 
               </div>
 
-              {/* DESCRIPTION */}
-              <p
-                style={{
-                  marginTop: "18px",
-                  color: "#cbd5e1",
-                  lineHeight: "1.8",
-                  fontSize: "16px"
-                }}
-              >
-                Potential vulnerability detected during static analysis.
-                Review this issue carefully before deployment.
-              </p>
+{/* DESCRIPTION */}
+<p
+  style={{
+    marginTop: "18px",
+    color: "#cbd5e1",
+    lineHeight: "1.8",
+    fontSize: "16px"
+  }}
+>
+  {
+    vuln.description
+    ||
+    "Security issue detected."
+  }
+</p>
 
-            </div>
-          ))
-        }
+{/* EXAMPLE CODE */}
+{
+  vuln.example && (
 
-      </>
-    )
+    <pre
+      className="vuln-example-code"
+      style={{
+        marginTop: "18px",
+        padding: "16px",
+        borderRadius: "14px",
+        background: "#020617",
+        color: "#38bdf8",
+        overflowX: "auto",
+        fontSize: "14px",
+        lineHeight: "1.7"
+      }}
+    >
+
+      {vuln.example}
+
+    </pre>
+  )
+}
+
+{/* RECOMMENDATION */}
+{
+  vuln.recommendation && (
+
+    <div
+      className="vuln-recommendation"
+      style={{
+        marginTop: "18px",
+        color: "#f8fafc",
+        lineHeight: "1.8"
+      }}
+    >
+
+      <strong>
+        Recommended Fix:
+      </strong>
+
+      <br />
+
+      {vuln.recommendation}
+
+    </div>
+  )
+}
+
+          </div>
+
+        ))
+      }
+
+    </>
+  )
   }
 
 </div>
-
  {/* ================================================= */}
 {/* SYMBOLIC EXECUTION */}
 {/* ================================================= */}

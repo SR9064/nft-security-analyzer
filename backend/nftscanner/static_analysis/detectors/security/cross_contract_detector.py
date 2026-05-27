@@ -100,10 +100,43 @@ def detect_cross_reentrancy(contracts):
     # Convert cycles → issues
     # ---------------------------------
     for cycle in cycles:
+
         issues.append({
-            "type": f"Multi-Contract Reentrancy Cycle: {' → '.join(cycle)}",
-            "severity": "High",
-            "path": cycle
+
+            "type":
+                (
+                    "Multi-Contract "
+                    f"Reentrancy Cycle: "
+                    f"{' → '.join(cycle)}"
+                ),
+
+            "severity":
+                "HIGH",
+
+            "path":
+                cycle,
+
+            "description":
+                (
+                    "Multiple contracts form "
+                    "a recursive execution cycle "
+                    "that may enable reentrancy."
+                ),
+
+            "example":
+                (
+                    "A.withdraw() → "
+                    "B.trigger() → "
+                    "C.execute() → "
+                    "A.withdraw()"
+                ),
+
+            "recommendation":
+                (
+                    "Use reentrancy guards and "
+                    "follow checks-effects-"
+                    "interactions pattern."
+                )
         })
 
     return issues
