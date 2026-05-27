@@ -185,15 +185,6 @@ setAttackPaths
 // =================================================
 // BUILD INTERACTIVE GRAPH
 // =================================================
-const _entryCount =
-(
-  data.symbolic_trace || []
-).filter(
-  (trace: string) =>
-    !trace.includes("⚠")
-    &&
-    !trace.includes("External")
-).length
 
 const importantTrace =
 (
